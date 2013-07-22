@@ -60,7 +60,7 @@ class ScanOptions(object):
 class Scanner(object):
   def __init__(self, options):
     self.options = options
-    self.iLoop = 0
+    self.iTestFiles = 0
     self.lost_bytes = 0
     self.damaged_files = 0
     self.lost_files = 0
@@ -71,8 +71,8 @@ class Scanner(object):
   def write(self):
     write_error = False
     while not write_error:
-      self.iLoop += 1
-      real_filename = '%s%s' % (options.filename, str(self.iLoop))
+      self.iTestFiles += 1
+      real_filename = '%s%s' % (options.filename, str(self.iTestFiles))
       try:
         try:
           # Create the output file
@@ -81,7 +81,7 @@ class Scanner(object):
           file_length = 0
           while file_length < options.length:
             # Write test data in output file
-            write_pattern = self.create_pattern(options.block_size, self.iLoop)
+            write_pattern = self.create_pattern(options.block_size, self.iTestFiles)
             fOutput.write(write_pattern)
             file_length += len(write_pattern)
         except IOError, error:
@@ -98,7 +98,7 @@ class Scanner(object):
         write_error = True
 
   def verify(self):
-    for iVerification in xrange(1, self.iLoop + 1):
+    for iVerification in xrange(1, self.iTestFiles + 1):
       real_filename = '%s%s' % (options.filename, str(iVerification))
       damaged_data = 0
       try:
@@ -119,7 +119,7 @@ class Scanner(object):
           # The two strings differ in length      
           if len(sInput) != len(sVerification):
             # Is it the last partial block?
-            if iVerification == self.iLoop:
+            if iVerification == self.iTestFiles:
               # The last pattern needs to be cut to the exact size before to check
               sVerification = sVerification[:len(sInput)]
             else:
