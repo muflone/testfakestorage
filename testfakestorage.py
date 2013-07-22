@@ -20,6 +20,7 @@
 
 APPNAME = 'testfakestorage'
 VERSION = '0.1.0'
+ERROR_DISK_FULL = 28
 
 import argparse
 import os.path
@@ -61,15 +62,26 @@ class Scanner(object):
   def __init__(self, options):
     self.options = options
     
-    for i in range(1, 11):
-      real_filename = '%s%s' % (options.filename, str(i))
-      # Create the output file
-      fOutput = open(os.path.join(options.path, real_filename), 'w')
-      pattern = TestingPattern(options.block_size)
-      # Write test data in output file
-      fOutput.write(pattern.create(i))
-      # Close output file
-      fOutput.close()
+    iLoop = 0
+    write_error = False
+    while not write_error:
+      iLoop += 1
+      real_filename = '%s%s' % (options.filename, str(iLoop))
+      try:
+        # Create the output file
+        fOutput = open(os.path.join(options.path, real_filename), 'w')
+        pattern = TestingPattern(options.block_size)
+        # Write test data in output file
+        fOutput.write(pattern.create(iLoop))
+      except IOError, error:
+        # Handle disk full exception
+        if error.errno != ERROR_DISK_FULL:
+          # This is an unexpected exception, it should be handled in some way
+          print 'There was an unexpected error during the write of a test'
+        write_error = True
+      finally:
+        # Close output file
+        fOutput.close()
 
 if __name__=='__main__':
   options = ScanOptions()
