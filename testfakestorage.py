@@ -40,6 +40,9 @@ class ScanOptions(object):
     group.add_argument('-f', '--filename' , action='store', type=str,
       default='%s-' % APPNAME,
       help='Set the filename prefix for each file')
+    group.add_argument('-l', '--length' , action='store', type=int,
+      default=1000000000,
+      help='Set the maximum file size')
     group.add_argument('-b', '--block' , action='store', type=int, default=1024*1024,
       help='Set the block size to write')
 
@@ -49,6 +52,7 @@ class ScanOptions(object):
     self.path = args.path
     self.block_size = args.block
     self.filename = args.filename
+    self.length = args.length
 
 class Scanner(object):
   def __init__(self, options):
@@ -67,8 +71,13 @@ class Scanner(object):
         try:
           # Create the output file
           fOutput = open(os.path.join(options.path, real_filename), 'w')
-          # Write test data in output file
-          fOutput.write(self.create_pattern(options.block_size, self.iLoop))
+          # Fill the file in multiple writes
+          file_length = 0
+          while file_length < options.length:
+            # Write test data in output file
+            write_pattern = self.create_pattern(options.block_size, self.iLoop)
+            fOutput.write(write_pattern)
+            file_length += len(write_pattern)
         except IOError, error:
           # Handle disk full exception
           if error.errno != ERROR_DISK_FULL:
@@ -87,25 +96,32 @@ class Scanner(object):
       real_filename = '%s%s' % (options.filename, str(iVerification))
       # Open the input file
       fInput = open(os.path.join(options.path, real_filename), 'rb')
-      # Read test data from the input file
-      sInput = fInput.read(options.block_size)
-      # Close input file
-      fInput.close()
+      iBlockNr = 0
+      while True:
+        iBlockNr += 1
+        # Read test data from the input file
+        sInput = fInput.read(options.block_size)
+        #print 'readed a block of %d bytes' % len(sInput)
+        if len(sInput) == 0:
+          break
 
-      # Create another pattern for verification
-      sVerification = self.create_pattern(options.block_size, iVerification)
+        # Create another pattern for verification
+        sVerification = self.create_pattern(options.block_size, iVerification)
 
-      # The two strings differ in length      
-      if len(sInput) != len(sVerification):
-        # Is it the last partial block?
-        if iVerification == self.iLoop:
-          # The last pattern needs to be cut to the exact size before to check
-          sVerification = sVerification[:len(sInput)]
+        # The two strings differ in length      
+        if len(sInput) != len(sVerification):
+          # Is it the last partial block?
+          if iVerification == self.iLoop:
+            # The last pattern needs to be cut to the exact size before to check
+            sVerification = sVerification[:len(sInput)]
       
-      # Are the two strings equal?
-      if sInput != sVerification:
-        print 'There was an error during the verification for the file "%s"' % \
-          real_filename
+        # Are the two strings equal?
+        if sInput != sVerification:
+          print 'There was an error during the verification for the file %d "%s" while checking the block %d at position %d' % \
+            (iVerification, real_filename, iBlockNr, iBlockNr * options.block_size)
+
+      # Close input file at the end
+      fInput.close()
 
 if __name__=='__main__':
   options = ScanOptions()
