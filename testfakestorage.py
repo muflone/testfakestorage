@@ -26,6 +26,7 @@ MEGABYTE = KILOBYTE * KILOBYTE
 GIGABYTE = KILOBYTE * MEGABYTE
 
 import argparse
+import os
 import os.path
 
 class ScanOptions(object):
@@ -38,6 +39,14 @@ class ScanOptions(object):
     parser.add_argument('-V', '--version'  , action='version',
       help='Display the program version number and exit',
       version='%s %s' % (APPNAME, VERSION))
+
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('-w', '--writeonly' , action='store_true', 
+      default=False,
+      help='Writes only the data without testing them')
+    group.add_argument('-c', '--checkonly' , action='store_true', 
+      default=False,
+      help='Checks only the data without testing them')
 
     group = parser.add_argument_group(title='Testing options')
     group.add_argument('-f', '--filename' , action='store', type=str,
@@ -60,6 +69,8 @@ class ScanOptions(object):
     self.filename = args.filename
     self.length = args.length
     self.max_files = args.maxfiles
+    self.writeonly = args.writeonly
+    self.checkonly = args.checkonly
 
 class Scanner(object):
   def __init__(self, options):
@@ -156,6 +167,20 @@ class Scanner(object):
 if __name__=='__main__':
   options = ScanOptions()
   scanner = Scanner(options)
-  scanner.write()
-  scanner.verify()
-  scanner.result()
+  if not options.checkonly:
+    # print 'write'
+    # TODO: implement a pause/stop/continue feature
+    scanner.write()
+  else:
+    # Detect which files are present before to check if not writing
+    for sFileName in os.listdir(options.path):
+      sSuffix = sFileName[len(options.filename):]
+      if sFileName.startswith(options.filename) and sSuffix.isdigit():
+        # The file names on the disk are not sorted, find the last number
+        if scanner.iTestFiles < int(sSuffix):
+          scanner.iTestFiles = int(sSuffix)
+
+  if not options.writeonly:
+    # print 'verify'
+    scanner.verify()
+    scanner.result()
