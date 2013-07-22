@@ -29,7 +29,7 @@ class ScanOptions(object):
     parser = argparse.ArgumentParser(add_help=True,
       usage='%(prog)s [options] PATH',
       description='Create an index file of files or directories')
-    parser.add_argument('path'             , action='store', type=str,
+    parser.add_argument('path', action='store', type=str,
       help='Directory where to save test files')
     parser.add_argument('-V', '--version'  , action='version',
       help='Display the program version number and exit',
@@ -52,6 +52,7 @@ class ScanOptions(object):
 class TestingPattern(object):
   def __init__(self, block_size):
     self.block_size = block_size
+
   def create(self, index):
     result = (str(index) * (self.block_size / len(str(index)) + 1))
     return result[:self.block_size]
@@ -61,16 +62,15 @@ class Scanner(object):
     self.options = options
     
     for i in range(1, 11):
-      fOutput = open(os.path.join(options.path, '%s%s' % (options.filename, str(i))), 'w')
+      real_filename = '%s%s' % (options.filename, str(i))
+      # Create the output file
+      fOutput = open(os.path.join(options.path, real_filename), 'w')
       pattern = TestingPattern(options.block_size)
+      # Write test data in output file
       fOutput.write(pattern.create(i))
+      # Close output file
       fOutput.close()
 
 if __name__=='__main__':
   options = ScanOptions()
-  print options.path
-  print options.block_size
-  print options.filename
-
   scanner = Scanner(options)
-  
