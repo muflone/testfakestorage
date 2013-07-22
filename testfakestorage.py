@@ -58,6 +58,9 @@ class Scanner(object):
   def __init__(self, options):
     self.options = options
     self.iLoop = 0
+    self.lost_bytes = 0
+    self.damaged_files = 0
+    self.lost_files = 0
 
   def create_pattern(self, block_size, index):
     return (str(index) * (block_size / len(str(index)) + 1))[:block_size]
@@ -94,6 +97,7 @@ class Scanner(object):
   def verify(self):
     for iVerification in xrange(1, self.iLoop + 1):
       real_filename = '%s%s' % (options.filename, str(iVerification))
+      damaged_data = 0
       try:
         # Open the input file
         fInput = open(os.path.join(options.path, real_filename), 'rb')
@@ -117,19 +121,33 @@ class Scanner(object):
               sVerification = sVerification[:len(sInput)]
             else:
               print 'wrong length %d %d' % (len(sInput), len(sVerification))
+              damaged_data += options.block_size
       
           # Are the two strings equal?
           if sInput != sVerification:
-            print 'There was an error during the verification for the file # %d \
-while checking the block %d at position %d' % \
+            print 'There was an error during the verification for the file # %d while checking the block %d at position %d' % \
               (iVerification, iBlockNr, iBlockNr * options.block_size)
+            damaged_data += options.block_size
         # Close input file at the end
         fInput.close()
       except IOError, error:
         print 'The file # %d is missing, the whole test data are lost' % iVerification
+        self.lost_files += 1
+      if damaged_data > 0:
+        self.damaged_files += 1
+        self.lost_bytes += damaged_data
+
+  def result(self):
+    if self.damaged_files > 0:
+      print '%d files were damaged' % self.damaged_files
+    if self.lost_files > 0:
+      print '%d files were lost for a total of %d bytes' % (self.lost_files, self.lost_files * self.options.length)
+    if self.lost_bytes + self.lost_files > 0:
+      print 'There was a data loss of %d bytes' % (self.lost_bytes + self.lost_files * self.options.length)
 
 if __name__=='__main__':
   options = ScanOptions()
   scanner = Scanner(options)
   scanner.write()
   scanner.verify()
+  scanner.result()
