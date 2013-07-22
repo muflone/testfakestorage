@@ -21,6 +21,9 @@
 APPNAME = 'testfakestorage'
 VERSION = '0.1.0'
 ERROR_DISK_FULL = 28
+KILOBYTE = 1000
+MEGABYTE = KILOBYTE * KILOBYTE
+GIGABYTE = KILOBYTE * MEGABYTE
 
 import argparse
 import os.path
@@ -41,9 +44,9 @@ class ScanOptions(object):
       default='%s-' % APPNAME,
       help='Set the filename prefix for each file')
     group.add_argument('-l', '--length' , action='store', type=int,
-      default=1000000000,
+      default=GIGABYTE,
       help='Set the maximum file size')
-    group.add_argument('-b', '--block' , action='store', type=int, default=1024*1024,
+    group.add_argument('-b', '--block' , action='store', type=int, default=MEGABYTE,
       help='Set the block size to write')
 
     args = parser.parse_args()
