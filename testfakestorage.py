@@ -61,18 +61,19 @@ class TestingPattern(object):
 class Scanner(object):
   def __init__(self, options):
     self.options = options
+    self.iLoop = 0
     
-    iLoop = 0
+  def write(self):
     write_error = False
     while not write_error:
-      iLoop += 1
-      real_filename = '%s%s' % (options.filename, str(iLoop))
+      self.iLoop += 1
+      real_filename = '%s%s' % (options.filename, str(self.iLoop))
       try:
         # Create the output file
         fOutput = open(os.path.join(options.path, real_filename), 'w')
         pattern = TestingPattern(options.block_size)
         # Write test data in output file
-        fOutput.write(pattern.create(iLoop))
+        fOutput.write(pattern.create(self.iLoop))
       except IOError, error:
         # Handle disk full exception
         if error.errno != ERROR_DISK_FULL:
@@ -86,3 +87,4 @@ class Scanner(object):
 if __name__=='__main__':
   options = ScanOptions()
   scanner = Scanner(options)
+  scanner.write()
