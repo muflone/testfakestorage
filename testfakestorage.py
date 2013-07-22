@@ -48,6 +48,9 @@ class ScanOptions(object):
       help='Set the maximum file size')
     group.add_argument('-b', '--block' , action='store', type=int, default=MEGABYTE,
       help='Set the block size to write')
+    group.add_argument('-m', '--maxfiles' , action='store', type=int,
+      default=0,
+      help='Set the maximum number of files where 0 means until the disk is full')
 
     args = parser.parse_args()
     
@@ -56,6 +59,7 @@ class ScanOptions(object):
     self.block_size = args.block
     self.filename = args.filename
     self.length = args.length
+    self.max_files = args.maxfiles
 
 class Scanner(object):
   def __init__(self, options):
@@ -70,7 +74,8 @@ class Scanner(object):
 
   def write(self):
     write_error = False
-    while not write_error:
+    while not write_error and \
+      (self.iTestFiles < self.options.max_files or self.options.max_files <= 0):
       self.iTestFiles += 1
       real_filename = '%s%s' % (options.filename, str(self.iTestFiles))
       try:
