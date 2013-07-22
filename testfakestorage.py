@@ -94,34 +94,39 @@ class Scanner(object):
   def verify(self):
     for iVerification in xrange(1, self.iLoop + 1):
       real_filename = '%s%s' % (options.filename, str(iVerification))
-      # Open the input file
-      fInput = open(os.path.join(options.path, real_filename), 'rb')
-      iBlockNr = 0
-      while True:
-        iBlockNr += 1
-        # Read test data from the input file
-        sInput = fInput.read(options.block_size)
-        #print 'readed a block of %d bytes' % len(sInput)
-        if len(sInput) == 0:
-          break
+      try:
+        # Open the input file
+        fInput = open(os.path.join(options.path, real_filename), 'rb')
+        iBlockNr = 0
+        while True:
+          iBlockNr += 1
+          # Read test data from the input file
+          sInput = fInput.read(options.block_size)
+          #print 'readed a block of %d bytes' % len(sInput)
+          if len(sInput) == 0:
+            break
 
-        # Create another pattern for verification
-        sVerification = self.create_pattern(options.block_size, iVerification)
+          # Create another pattern for verification
+          sVerification = self.create_pattern(options.block_size, iVerification)
 
-        # The two strings differ in length      
-        if len(sInput) != len(sVerification):
-          # Is it the last partial block?
-          if iVerification == self.iLoop:
-            # The last pattern needs to be cut to the exact size before to check
-            sVerification = sVerification[:len(sInput)]
+          # The two strings differ in length      
+          if len(sInput) != len(sVerification):
+            # Is it the last partial block?
+            if iVerification == self.iLoop:
+              # The last pattern needs to be cut to the exact size before to check
+              sVerification = sVerification[:len(sInput)]
+            else:
+              print 'wrong length %d %d' % (len(sInput), len(sVerification))
       
-        # Are the two strings equal?
-        if sInput != sVerification:
-          print 'There was an error during the verification for the file %d "%s" while checking the block %d at position %d' % \
-            (iVerification, real_filename, iBlockNr, iBlockNr * options.block_size)
-
-      # Close input file at the end
-      fInput.close()
+          # Are the two strings equal?
+          if sInput != sVerification:
+            print 'There was an error during the verification for the file # %d \
+while checking the block %d at position %d' % \
+              (iVerification, iBlockNr, iBlockNr * options.block_size)
+        # Close input file at the end
+        fInput.close()
+      except IOError, error:
+        print 'The file # %d is missing, the whole test data are lost' % iVerification
 
 if __name__=='__main__':
   options = ScanOptions()
