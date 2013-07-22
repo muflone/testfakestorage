@@ -64,19 +64,23 @@ class Scanner(object):
       self.iLoop += 1
       real_filename = '%s%s' % (options.filename, str(self.iLoop))
       try:
-        # Create the output file
-        fOutput = open(os.path.join(options.path, real_filename), 'w')
-        # Write test data in output file
-        fOutput.write(self.create_pattern(options.block_size, self.iLoop))
+        try:
+          # Create the output file
+          fOutput = open(os.path.join(options.path, real_filename), 'w')
+          # Write test data in output file
+          fOutput.write(self.create_pattern(options.block_size, self.iLoop))
+        except IOError, error:
+          # Handle disk full exception
+          if error.errno != ERROR_DISK_FULL:
+            # This is an unexpected exception, it should be handled in some way
+            print 'There was an unexpected error during the write of a test'
+          write_error = True
+        finally:
+          # Close output file
+          fOutput.close()
       except IOError, error:
-        # Handle disk full exception
-        if error.errno != ERROR_DISK_FULL:
-          # This is an unexpected exception, it should be handled in some way
-          print 'There was an unexpected error during the write of a test'
+        # Unable to close the file, abort
         write_error = True
-      finally:
-        # Close output file
-        fOutput.close()
 
   def verify(self):
     for iVerification in xrange(1, self.iLoop + 1):
