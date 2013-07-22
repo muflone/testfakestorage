@@ -50,19 +50,14 @@ class ScanOptions(object):
     self.block_size = args.block
     self.filename = args.filename
 
-class TestingPattern(object):
-  def __init__(self, block_size):
-    self.block_size = block_size
-
-  def create(self, index):
-    result = (str(index) * (self.block_size / len(str(index)) + 1))
-    return result[:self.block_size]
-
 class Scanner(object):
   def __init__(self, options):
     self.options = options
     self.iLoop = 0
-    
+
+  def create_pattern(self, block_size, index):
+    return (str(index) * (block_size / len(str(index)) + 1))[:block_size]
+
   def write(self):
     write_error = False
     while not write_error:
@@ -71,9 +66,8 @@ class Scanner(object):
       try:
         # Create the output file
         fOutput = open(os.path.join(options.path, real_filename), 'w')
-        pattern = TestingPattern(options.block_size)
         # Write test data in output file
-        fOutput.write(pattern.create(self.iLoop))
+        fOutput.write(self.create_pattern(options.block_size, self.iLoop))
       except IOError, error:
         # Handle disk full exception
         if error.errno != ERROR_DISK_FULL:
@@ -84,7 +78,33 @@ class Scanner(object):
         # Close output file
         fOutput.close()
 
+  def verify(self):
+    for iVerification in xrange(1, self.iLoop + 1):
+      real_filename = '%s%s' % (options.filename, str(iVerification))
+      # Open the input file
+      fInput = open(os.path.join(options.path, real_filename), 'rb')
+      # Read test data from the input file
+      sInput = fInput.read(options.block_size)
+      # Close input file
+      fInput.close()
+
+      # Create another pattern for verification
+      sVerification = self.create_pattern(options.block_size, iVerification)
+
+      # The two strings differ in length      
+      if len(sInput) != len(sVerification):
+        # Is it the last partial block?
+        if iVerification == self.iLoop:
+          # The last pattern needs to be cut to the exact size before to check
+          sVerification = sVerification[:len(sInput)]
+      
+      # Are the two strings equal?
+      if sInput != sVerification:
+        print 'There was an error during the verification for the file "%s"' % \
+          real_filename
+
 if __name__=='__main__':
   options = ScanOptions()
   scanner = Scanner(options)
   scanner.write()
+  scanner.verify()
