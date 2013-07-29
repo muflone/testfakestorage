@@ -19,7 +19,7 @@
 ##
 
 APPNAME = 'testfakestorage'
-VERSION = '0.1.0'
+VERSION = '0.2.0'
 ERROR_DISK_FULL = 28
 KILOBYTE = 1000
 MEGABYTE = KILOBYTE * KILOBYTE
@@ -72,16 +72,26 @@ class ScanOptions(object):
     self.writeonly = args.writeonly
     self.checkonly = args.checkonly
 
+class PatternGenerator(object):
+  def __init__(self, block_size):
+    self.block_size = block_size
+  def create(self, index):
+    return None
+
+class PatternGeneratorIndexed(PatternGenerator):
+  def __init__(self, block_size):
+    PatternGenerator.__init__(self, block_size)
+  def create(self, index):
+    return (str(index) * (self.block_size / len(str(index)) + 1))[:self.block_size]
+
 class Scanner(object):
-  def __init__(self, options):
+  def __init__(self, options, generator):
     self.options = options
+    self.generator = generator
     self.iTestFiles = 0
     self.lost_bytes = 0
     self.damaged_files = 0
     self.lost_files = 0
-
-  def create_pattern(self, block_size, index):
-    return (str(index) * (block_size / len(str(index)) + 1))[:block_size]
 
   def write(self):
     write_error = False
@@ -97,7 +107,7 @@ class Scanner(object):
           file_length = 0
           while file_length < options.length:
             # Write test data in output file
-            write_pattern = self.create_pattern(options.block_size, self.iTestFiles)
+            write_pattern = self.generator.create(self.iTestFiles)
             fOutput.write(write_pattern)
             file_length += len(write_pattern)
         except IOError, error:
@@ -130,7 +140,7 @@ class Scanner(object):
             break
 
           # Create another pattern for verification
-          sVerification = self.create_pattern(options.block_size, iVerification)
+          sVerification = self.generator.create(iVerification)
 
           # The two strings differ in length      
           if len(sInput) != len(sVerification):
@@ -166,9 +176,10 @@ class Scanner(object):
 
 if __name__=='__main__':
   options = ScanOptions()
-  scanner = Scanner(options)
+  generator = PatternGeneratorIndexed(options.block_size)
+  scanner = Scanner(options, generator)
   if not options.checkonly:
-    # print 'write'
+    print 'write'
     # TODO: implement a pause/stop/continue feature
     scanner.write()
   else:
@@ -181,6 +192,6 @@ if __name__=='__main__':
           scanner.iTestFiles = int(sSuffix)
 
   if not options.writeonly:
-    # print 'verify'
+    print 'verify'
     scanner.verify()
     scanner.result()
