@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 ##
 #       Project : testfakestorage
-#       Version : 0.1.0
+#       Version : 0.2.0
 #   Description : A tool to test for fake storage like many cheap USB drives.
 #        Author : Muflone <muflone@vbsimple.net>
 #     Copyright : 2012 Fabio Castelli
@@ -79,8 +79,6 @@ class PatternGenerator(object):
     return None
 
 class PatternGeneratorIndexed(PatternGenerator):
-  def __init__(self, block_size):
-    PatternGenerator.__init__(self, block_size)
   def create(self, index):
     return (str(index) * (self.block_size / len(str(index)) + 1))[:self.block_size]
 
