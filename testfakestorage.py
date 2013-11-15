@@ -67,7 +67,7 @@ class ScanOptions(object):
     self.path = args.path
     self.block_size = args.block
     self.filename = args.filename
-    self.length = args.length
+    self.maxlength = args.length
     self.max_files = args.maxfiles
     self.writeonly = args.writeonly
     self.checkonly = args.checkonly
@@ -80,7 +80,13 @@ class PatternGenerator(object):
 
 class PatternGeneratorIndexed(PatternGenerator):
   def create(self, index):
-    return (str(index) * (self.block_size / len(str(index)) + 1))[:self.block_size]
+    result = str(index) * (self.block_size / len(str(index)) + 1)
+    return result[:self.block_size]
+
+class PatternGeneratorIndexedLines(PatternGenerator):
+  def create(self, index):
+    result = (((str(index) * (min(self.block_size, 1000) - 1)) + '\n') * (self.block_size / len(str(index)) + 1))[:self.block_size]
+    return result[:self.block_size - 1] + '\n'
 
 class Scanner(object):
   def __init__(self, options, generator):
@@ -103,11 +109,16 @@ class Scanner(object):
           fOutput = open(os.path.join(options.path, real_filename), 'w')
           # Fill the file in multiple writes
           file_length = 0
-          while file_length < options.length:
+          while file_length < options.maxlength:
             # Write test data in output file
             write_pattern = self.generator.create(self.iTestFiles)
+            if (file_length + len(write_pattern)) > options.maxlength:
+              write_pattern = write_pattern[options.maxlength - file_length]
             fOutput.write(write_pattern)
+            #fOutput.flush()
             file_length += len(write_pattern)
+            print file_length, options.maxlength
+            #raw_input()
         except IOError, error:
           # Handle disk full exception
           if error.errno != ERROR_DISK_FULL:
@@ -168,13 +179,13 @@ class Scanner(object):
     if self.damaged_files > 0:
       print '%d files were damaged' % self.damaged_files
     if self.lost_files > 0:
-      print '%d files were lost for a total of %d bytes' % (self.lost_files, self.lost_files * self.options.length)
+      print '%d files were lost for a total of %d bytes' % (self.lost_files, self.lost_files * self.options.maxlength)
     if self.lost_bytes + self.lost_files > 0:
-      print 'There was a data loss of %d bytes' % (self.lost_bytes + self.lost_files * self.options.length)
+      print 'There was a data loss of %d bytes' % (self.lost_bytes + self.lost_files * self.options.maxlength)
 
 if __name__=='__main__':
   options = ScanOptions()
-  generator = PatternGeneratorIndexed(options.block_size)
+  generator = PatternGeneratorIndexedLines(options.block_size)
   scanner = Scanner(options, generator)
   if not options.checkonly:
     print 'write'
